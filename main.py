@@ -5,7 +5,6 @@ from random import choice, randint
 import System
 from System import Console
 import json
-import sys
 import threading
 
 class MinerGame:
@@ -49,22 +48,21 @@ class MinerGame:
 "Blightstone Emberglass Cloudium Tempestite Radiacore "
 "Nullium Omegaite Anomalyx Luxcrystal Voidflare "
 "Solarion Eclipseon Riftglass Obliviron Aeoncore"
-
-).split()
+        ).split()
 
         self.SAVE_FILE = "save.json"
         self.load_game()
 
-    # ==================== LOADING ====================
+    # =============== LOADING ===============
     def loading_animation(self, text="Bitcoin Miner Booting..."):
         self.clear()
         cols = get_terminal_size().columns
-        rows = get_terminal_size().lines*5
+        rows = 99
         stream_chars = "01"
 
         for _ in range(rows):
             line = "".join(
-                f"\033[32m{choice(stream_chars)}\033[0m" if randint(0, 5) else " "
+                f"\033[32m{choice(stream_chars)}\033[0m" if randint(0, 4) else " "
                 for _ in range(cols)
             )
             print(line)
@@ -73,7 +71,7 @@ class MinerGame:
         print(f"\033[1;32m{msg}\033[0m")
         sleep(1)
 
-    # ==================== GAME STATE ====================
+    # =============== GAME STATE ===============
     def load_game(self):
         if path.exists(self.SAVE_FILE):
             try:
@@ -88,7 +86,7 @@ class MinerGame:
         with open(self.SAVE_FILE, "w") as f:
             json.dump({"money": self.money, "miners": self.miners}, f)
 
-    # ==================== UTILITIES ====================
+    # =============== UTILITIES ===============
     def color(self, text, fg=None, bg=None):
         colors = {
             "black": 30, "red": 31, "green": 32, "yellow": 33,
@@ -116,31 +114,41 @@ class MinerGame:
         Console.Clear()
         self.menu()
 
+    def border(self, title=""):
+        cols = get_terminal_size().columns
+        top = "═" * cols
+        print(f"\033[48;5;22m{top}\033[0m")
+        if title:
+            self.color(self.center(f" {title} "), fg="bright_white", bg="dark_green")
+            print(f"\033[48;5;22m{top}\033[0m")
+
     def menu(self):
-        text = "   ".join(f"{i+1} {opt}" for i, opt in enumerate(["Open Shop", "View Miners", "Gambling Room", "Typing Challenge", "View Stats"]))
-        text = text.ljust(get_terminal_size().columns)
-        self.color(text, bg="dark_green")
+        cols = get_terminal_size().columns
+        opts = ["Shop", "Gambling", "Typing", "Stats"]
+        menu_line = "   ".join(f"[{i+1}] {opt}" for i, opt in enumerate(opts))
+        border = "═" * cols
+        print(f"\033[48;5;22m{border}\033[0m")
+        self.color(menu_line.center(cols), fg="bright_white", bg="dark_green")
+        print(f"\033[48;5;22m{border}\033[0m")
 
     def show_bitcoin(self):
-        self.color(f"You have {self.money:,} Bitcoin", fg="bright_yellow")
+        self.color(f"💰 Bitcoin: {self.money:,}", fg="bright_yellow")
 
-    # ==================== MINERS ====================
+    # =============== ECONOMY ===============
     def get_value(self, miner):
         idx = self.miner_types.index(miner) + 1
-        return round((idx ** 3) * 2)  # stable quadratic growth
+        return round((idx ** 2) * 5)  # slower growth
 
     def get_price(self, miner):
         amt = self.miners.count(miner)
         idx = self.miner_types.index(miner) + 1
-
-        base = (idx ** 2.8) * 100
+        base = (idx ** 3.5) * 50  # much faster growth
         return round(base * (1.12 ** amt))
-    
+
     def calc_increment_value(self):
         return sum(self.get_value(i) for i in self.miners)
 
-    # ==================== PAGES =====================
-
+    # =============== SHOP ===============
     def shop(self):
         def buy(index):
             miner = self.miner_types[index]
@@ -151,23 +159,23 @@ class MinerGame:
                 self.color(f"✔ Bought {miner} miner!", fg="bright_green")
                 self.save_game()
             else:
-                self.color("✘ Not enough Bitcoin!", fg="bright_green")
+                self.color("✘ Not enough Bitcoin!", fg="red")
 
         index = 0
         self.clear()
-        self.color(self.center("=== SHOP ==="), fg="yellow")
+        self.border("SHOP")
         self.show_bitcoin()
-        while True:
-            Console.SetCursorPosition(0, 2)
 
+        while True:
+            Console.SetCursorPosition(0, 7)
             miner = self.miner_types[index]
             price = self.get_price(miner)
             owned = self.miners.count(miner)
 
-            print(f"\nMiner: {miner}          ")
-            print(f"Price: {price:,} Bitcoin")
-            print(f"Owned: {owned}")
-            print("\nUse [A]/[D] to browse, [Space] to buy, [Q] to quit")
+            self.color(f"Miner: {miner}                ", fg="cyan")
+            self.color(f"Price: {price:,} Bitcoin              ", fg="yellow")
+            self.color(f"Owned: {owned}                      ", fg="bright_white")
+            self.color("\n[A]/[D] Browse   [Space] Buy   [Q] Quit", fg="bright_magenta")
 
             key = self.get_key()
             if key == "d":
@@ -176,61 +184,53 @@ class MinerGame:
                 index = (index - 1) % len(self.miner_types)
             elif key == " ":
                 buy(index)
-                break
             elif key == "q":
                 break
         self.clear()
-        
+
+    # =============== TYPING MINIGAME ===============
     def typing_minigame(self):
         from time import time
 
         self.clear()
-        self.color(self.center("=== TYPING CHALLENGE ==="), fg="yellow")
+        self.border("TYPING CHALLENGE")
 
-        words = [
-    "cat", "dog", "sun", "tree", "book", "coin", "mine", "rock", "gold", "fast",
-    "code", "game", "star", "cloud", "light", "fire", "snow", "wind", "leaf", "rain",
-    "ball", "car", "cup", "door", "fish", "frog", "hat", "key", "pen", "shoe",
-    "sky", "toy", "wave", "bike", "desk", "lamp", "nest", "ring", "ship", "train",
-    "water", "zero", "apple", "ball", "bird", "cake", "duck", "ear", "farm", "gift",
-    "hill", "king", "leaf", "moon", "nest", "owl", "pear", "rose", "snow", "tree",
-    "wave", "yard", "bee", "cow", "fox", "hen", "pig", "rat", "ant", "bat"
-        ]
-
+        words = ["cat","dog","sun","tree","book","coin","mine","rock","gold","fast",
+                 "code","game","star","cloud","light","fire","snow","wind","leaf","rain"]
 
         target_words = [choice(words) for _ in range(10)]
         target_text = " ".join(target_words)
 
-        self.color(f"Type the following:\n  {target_text}", fg="bright_cyan")
+        self.color("Type the following:", fg="bright_cyan")
+        self.color(f" {target_text}", fg="cyan")
 
         Console.Write("> ")
-        start_time = time()
+        start = time()
         typed = Console.ReadLine()
-        end_time = time()
+        end = time()
 
-        time_taken = end_time - start_time
+        time_taken = end - start
         typed_words = typed.strip().split()
 
-        correct_words = sum(1 for a, b in zip(typed_words, target_words) if a == b)
+        correct = sum(1 for a,b in zip(typed_words, target_words) if a == b)
         wpm = (len(typed_words) / time_taken) * 60
 
-        reward = round(self.money * round(wpm * 2)/1000 * (correct_words/10)**2)
+        reward = round(self.money * round(wpm*2)/1000 * (correct/10)**2)
         self.money += reward
-        self.color(f"✔ Perfect! {correct_words}/10 words correct.", fg="bright_green")
-        self.color(f"You typed at {int(wpm)} WPM and earned {reward:,} Bitcoin!", fg="bright_green")
+        self.color(f"✔ {correct}/10 words correct", fg="bright_green")
+        self.color(f"Speed: {int(wpm)} WPM   Reward: {reward:,} Bitcoin", fg="yellow")
 
-        self.color("Press any key to return...", fg="yellow")
+        self.color("\nPress any key to return...", fg="magenta")
         self.get_key()
         self.clear()
 
+    # =============== GAMBLING ===============
     def gamble_bitcoin(self):
         def draw_card():
-            cards = [2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 11]  # 10 = J/Q/K, 11 = Ace
-            return choice(cards)
+            return choice([2,3,4,5,6,7,8,9,10,10,10,10,11])
 
         def hand_value(hand):
             total = sum(hand)
-            # Adjust Ace (11 → 1 if bust)
             while total > 21 and 11 in hand:
                 hand[hand.index(11)] = 1
                 total = sum(hand)
@@ -238,30 +238,27 @@ class MinerGame:
 
         while True:
             self.clear()
-            self.color(self.center("=== BLACKJACK ROOM ==="), fg="yellow")
-            self.color(f"Current Balance: {self.money:,}", fg="green")
-            # Get bet
-            self.color("Enter your bet, enter a letter to quit", fg="yellow")
+            self.border("BLACKJACK")
+            self.show_bitcoin()
+
+            self.color("Enter your bet (or letter to quit):", fg="yellow")
             try:
                 Console.Write("> ")
                 bet = int(Console.ReadLine())
             except ValueError:
-                self.color("Invalid input!", fg="red")
                 break
 
             if bet <= 0 or bet > self.money:
-                self.color("Invalid bet amount!", fg="red")
-                sleep(1.5)
+                self.color("Invalid bet!", fg="red")
+                sleep(1)
                 continue
 
-            # Initial deal
-            player = [draw_card(), draw_card()]
-            dealer = [draw_card(), draw_card()]
+            player, dealer = [draw_card(), draw_card()], [draw_card(), draw_card()]
 
-            # Player's turn
+            # player turn
             while True:
                 self.clear()
-                self.color(self.center("=== BLACKJACK ==="), fg="yellow")
+                self.border("BLACKJACK")
                 self.color(f"Your hand: {player} (Total: {hand_value(player)})", fg="green")
                 self.color(f"Dealer shows: [{dealer[0]}, ?]", fg="red")
 
@@ -270,34 +267,32 @@ class MinerGame:
                     self.money -= bet
                     break
 
-                self.color("Hit or Stand? (h/s)", fg="yellow")
+                self.color("\nHit or Stand? (h/s)", fg="yellow")
                 choice_key = self.get_key()
                 if choice_key == "h":
                     player.append(draw_card())
                 elif choice_key == "s":
                     break
 
-            # Dealer's turn (if player not busted)
+            # dealer turn
             if hand_value(player) <= 21:
                 while hand_value(dealer) < 17:
                     dealer.append(draw_card())
 
                 self.clear()
-                self.color(self.center("=== RESULTS ==="), fg="yellow")
+                self.border("RESULTS")
                 self.color(f"Your hand: {player} (Total: {hand_value(player)})", fg="green")
                 self.color(f"Dealer's hand: {dealer} (Total: {hand_value(dealer)})", fg="red")
 
-                player_total = hand_value(player)
-                dealer_total = hand_value(dealer)
-
-                if dealer_total > 21 or player_total > dealer_total:
+                p, d = hand_value(player), hand_value(dealer)
+                if d > 21 or p > d:
                     self.color(f"🎉 You win {bet}!", fg="bright_green")
                     self.money += bet
-                elif player_total < dealer_total:
+                elif p < d:
                     self.color(f"❌ You lose {bet}!", fg="red")
                     self.money -= bet
                 else:
-                    self.color("Push (tie). Bet returned.", fg="yellow")
+                    self.color("Push (tie).", fg="yellow")
 
             if self.money <= 0:
                 self.color("You're broke! Game over.", fg="red")
@@ -308,26 +303,13 @@ class MinerGame:
                 break
         self.clear()
 
-    def show_miners(self):
-        self.clear()
-        self.color(self.center("=== YOUR MINERS ==="), fg="yellow")
-        if not self.miners:
-            self.color("You don't own any miners yet!", fg="bright_green")
-        else:
-            counts = {m: self.miners.count(m) for m in self.miner_types if m in self.miners}
-            for miner, count in counts.items():
-                self.color(f"{miner}: x{count}", fg="bright_green")
-        print("\nPress any key to return...")
-        self.get_key()
-        self.clear()
-
+    # =============== STATS ===============
     def stats_screen(self):
         self.clear()
-        self.color(self.center("=== PLAYER STATS ==="), fg="yellow")
-        self.color(f"Money: {self.money}", fg="green")
+        self.border("PLAYER STATS")
+        self.color(f"Money: {self.money:,}", fg="green")
         self.color(f"Total Miners: {len(self.miners)}", fg="cyan")
 
-        # Count each miner type owned
         self.color("\nYour Miners:", fg="magenta")
         counts = {}
         for m in self.miners:
@@ -335,19 +317,17 @@ class MinerGame:
         for miner, amt in counts.items():
             self.color(f"  {miner}: {amt}", fg="bright_white")
 
-        # Add more fun stats
         self.color("\nExtra Stats:", fg="blue")
-        self.color(f"Total Value per Tick: {self.calc_increment_value()}", fg="bright_green")
-        self.color(f"Unique Miners Owned: {len(counts)}", fg="bright_cyan")
+        self.color(f"Value per Tick: {self.calc_increment_value()}", fg="bright_green")
+        self.color(f"Unique Miners: {len(counts)}", fg="bright_cyan")
 
         self.color("\nPress any key to return...", fg="yellow")
         self.get_key()
         self.clear()
 
-    # ==================== WAIT ====================
+    # =============== WAIT + MAIN LOOP ===============
     def wait(self, amt=None, skip=[], skipallbut=None):
         steps = 24
-        chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*()[]{}<>/\\|-_=+;:,"
         width = int(max(10, get_terminal_size().columns / 3 - 10))
         delay = (amt or (self.delay / 1000)) / steps
 
@@ -356,18 +336,12 @@ class MinerGame:
             progress = (step + 1) / steps
             locked = floor(progress * width)
 
-            # build flickering line
             line = "".join(
                 "█" if i < locked else (choice("01") if randint(0, 12) == 0 else "░")
                 for i in range(width)
             )
             pct = int(progress * 100)
-            hash_len = 8
-            stable = "".join(
-                choice("0123456789ABCDEF") if i >= floor((1 - progress) * hash_len) else " "
-                for i in range(hash_len)
-            )
-            status = f" DECRYPT {pct:3d}% | HASH [{stable}] "
+            status = f" DECRYPT {pct:3d}% "
 
             Console.SetCursorPosition(0, Console.CursorTop if step == 0 else Console.CursorTop - 2)
             self.color(line, fg="bright_green")
@@ -381,38 +355,32 @@ class MinerGame:
         Console.SetCursorPosition(0, Console.CursorTop - 2)
         self.color("█" * width, fg="bright_green")
 
-    # ==================== MAIN LOOP ====================
     def run(self):
         def inc_money():
             while True:
                 self.money += self.calc_increment_value()
                 sleep(self.delay / 1000)
 
-        thread = threading.Thread(target=inc_money, daemon=True)
-        thread.start()
-
+        threading.Thread(target=inc_money, daemon=True).start()
 
         Console.CursorVisible = False
         self.loading_animation()
         self.clear()
         i = 0
         while True:
-            Console.SetCursorPosition(0,2)
+            Console.SetCursorPosition(0,3)
             self.show_bitcoin()
-            key = self.wait(skipallbut="1 2 3 4 5".split(" "))
+            key = self.wait(skipallbut="1 2 3 4".split(" "))
             if key == "1":
                 self.shop()
             elif key == "2":
-                self.show_miners()
-            elif key == "3":
                 self.gamble_bitcoin()
-            elif key == "4":
+            elif key == "3":
                 self.typing_minigame()
-            elif key == "5":
+            elif key == "4":
                 self.stats_screen()
-            if i%3 == 1:
+            if i % 3 == 1:
                 self.save_game()
-            
             sleep(0.1)
             i+=1
 
