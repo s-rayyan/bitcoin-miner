@@ -14,14 +14,42 @@ class MinerGame:
     def __init__(self):
         self.money = 100
         self.delay = 1000
-        self.miners = []
+        self.miners = ["Wood"]
         self.miner_types = (
-    "Wood Stone Copper Iron Gold Sapphire Diamond Ruby Emerald "
-    "Platinum Titanium Uranium Krypton Neutron Quantum Omega "
-    "Oblivion Celestium Etherion Aetherium Chronium Eternium "
-    "Voidcrystal Singularity Arcanite Starforged Luminaris "
-    "Nebulite Astralium Infinitycore Paradoxium Eternacite "
-    "Mythrilon Voidcore"
+"Wood Stone Copper Iron Gold Sapphire Diamond Ruby Emerald "
+"Platinum Titanium Uranium Krypton Neutron Quantum Omega "
+"Oblivion Celestium Etherion Aetherium Chronium Eternium "
+"Voidcrystal Singularity Arcanite Starforged Luminaris "
+"Nebulite Astralium Infinitycore Paradoxium Eternacite "
+"Mythrilon Voidcore Zephyrium Solarium Lunaris CelestiumX "
+"Photonite Gravitanium Crysalite Radiantite Pyronite "
+"Chronotite Lumisphere Astronite Nebulith ArcaniumX "
+"Vortexium Stellarium Aetherite Cosmonite EtheriumX "
+"Novaite Hyperion Bitcoin "
+"Argentium Cryovite Pyroxene Luminite Stellite "
+"Aurorium CelestiumPrime Nebularite Etheris Obscurite "
+"Solarite ChroniumX Mythrionite Radiantium Zephyrite "
+"Glacium Onyxite Pyraquartz AetherionX Cosmonium "
+"Lunarium Radiite StellariumX Vortexion Obelion "
+"Neutrinium Crysolite Auranite HyperionX Photonix "
+"Cryptonite Obsidianite Etherlux Paradoxite Astralis "
+"Draconium Ignisium Frostium Voltanium Aquarite "
+"Terranite Aerolith Umbrite Ignarium Frostcrystal "
+"Solarflare Starcore Moonstone Thunderium Stormite "
+"Titanstone Duskite Dawnite Emberium Glaciron "
+"Darklight Shardium Prismite Chronoglass Phantasmite "
+"Lightcore Embercore Shadowcrystal Voidstone Dreamite "
+"Celestiron Mythicore Eternaglass Novaquartz Quantumite "
+"Aurorite Starlith Obscurium Cryovoid Netherium "
+"Blazium Arcsteel Froststeel Sunflare Moonflare "
+"Sparkite Riftium Fluxite Gravicore Pulsarite "
+"Nebularium Dimensium Singulite Omniquartz Parallite "
+"Timeglass Eternon Cosmolite Infinitystone Zerocore "
+"Zenite Pyrolith Oceanite Thunderstone Skyrift "
+"Blightstone Emberglass Cloudium Tempestite Radiacore "
+"Nullium Omegaite Anomalyx Luxcrystal Voidflare "
+"Solarion Eclipseon Riftglass Obliviron Aeoncore"
+
 ).split()
 
         self.SAVE_FILE = "save.json"
@@ -100,14 +128,19 @@ class MinerGame:
     # ==================== MINERS ====================
     def get_value(self, miner):
         idx = self.miner_types.index(miner) + 1
-        return round((idx ** 2) * 2)  # base value scaling
+        return round((idx ** 2) * 2)  # stable quadratic growth
 
     def get_price(self, miner):
         amt = self.miners.count(miner)
         idx = self.miner_types.index(miner) + 1
-        base = (idx ** 2) * 100         # base price scaling
-        return round(base * (1.1 ** amt))
 
+        # quadratic early, cubic late
+        base = (idx ** 2.4) * 50      # lower base + gentler curve
+        if idx > 20:
+            base = (idx ** 2.4) * 75  # ramps up for late-game ores
+
+        return round(base * (1.12 ** amt))
+    
     def calc_increment_value(self):
         return sum(self.get_value(i) for i in self.miners)
 
@@ -185,14 +218,10 @@ class MinerGame:
         correct_words = sum(1 for a, b in zip(typed_words, target_words) if a == b)
         wpm = (len(typed_words) / time_taken) * 60
 
-        if correct_words == len(target_words):
-            reward = round(self.money * round(wpm * 2)/1000) 
-            self.money += reward
-            self.color(f"✔ Perfect! {correct_words}/10 words correct.", fg="bright_green")
-            self.color(f"You typed at {int(wpm)} WPM and earned {reward:,} Bitcoin!", fg="bright_green")
-        else:
-            self.color(f"✘ {correct_words}/10 words correct.", fg="red")
-            self.color(f"You gain 0 Bitcoin.", fg="red")
+        reward = round(self.money * round(wpm * 2)/1000 * (correct_words/10)**2)
+        self.money += reward
+        self.color(f"✔ Perfect! {correct_words}/10 words correct.", fg="bright_green")
+        self.color(f"You typed at {int(wpm)} WPM and earned {reward:,} Bitcoin!", fg="bright_green")
 
         self.color("Press any key to return...", fg="yellow")
         self.get_key()
@@ -335,6 +364,15 @@ class MinerGame:
 
     # ==================== MAIN LOOP ====================
     def run(self):
+        def inc_money():
+            while True:
+                self.money += self.calc_increment_value()
+                sleep(self.delay / 1000)
+
+        thread = threading.Thread(target=inc_money)
+        thread.start()
+
+
         Console.CursorVisible = False
         self.loading_animation()
         self.clear()
@@ -351,8 +389,6 @@ class MinerGame:
                 self.gamble_bitcoin()
             elif key == "4":
                 self.typing_minigame()
-
-            self.money += self.calc_increment_value()
 
             if i == 25:
                 self.save_game()
