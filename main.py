@@ -117,28 +117,23 @@ class MinerGame:
         self.menu()
 
     def menu(self):
-        text = "   ".join(f"{i+1} {opt}" for i, opt in enumerate(["Open Shop", "View Miners", "Gambling Room", "Typing Challenge"]))
+        text = "   ".join(f"{i+1} {opt}" for i, opt in enumerate(["Open Shop", "View Miners", "Gambling Room", "Typing Challenge", "View Stats"]))
         text = text.ljust(get_terminal_size().columns)
         self.color(text, bg="dark_green")
 
     def show_bitcoin(self):
         self.color(f"You have {self.money:,} Bitcoin", fg="bright_yellow")
 
-
     # ==================== MINERS ====================
     def get_value(self, miner):
         idx = self.miner_types.index(miner) + 1
-        return round((idx ** 2) * 2)  # stable quadratic growth
+        return round((idx ** 3) * 2)  # stable quadratic growth
 
     def get_price(self, miner):
         amt = self.miners.count(miner)
         idx = self.miner_types.index(miner) + 1
 
-        # quadratic early, cubic late
-        base = (idx ** 2.4) * 50      # lower base + gentler curve
-        if idx > 20:
-            base = (idx ** 2.4) * 75  # ramps up for late-game ores
-
+        base = (idx ** 2.8) * 100
         return round(base * (1.12 ** amt))
     
     def calc_increment_value(self):
@@ -159,16 +154,17 @@ class MinerGame:
                 self.color("✘ Not enough Bitcoin!", fg="bright_green")
 
         index = 0
+        self.clear()
+        self.color(self.center("=== SHOP ==="), fg="yellow")
+        self.show_bitcoin()
         while True:
-            self.clear()
-            self.color(self.center("=== SHOP ==="), fg="yellow")
-            self.show_bitcoin()
+            Console.SetCursorPosition(0, 2)
 
             miner = self.miner_types[index]
             price = self.get_price(miner)
             owned = self.miners.count(miner)
 
-            print(f"\nMiner: {miner}")
+            print(f"\nMiner: {miner}          ")
             print(f"Price: {price:,} Bitcoin")
             print(f"Owned: {owned}")
             print("\nUse [A]/[D] to browse, [Space] to buy, [Q] to quit")
@@ -325,8 +321,31 @@ class MinerGame:
         self.get_key()
         self.clear()
 
+    def stats_screen(self):
+        self.clear()
+        self.color(self.center("=== PLAYER STATS ==="), fg="yellow")
+        self.color(f"Money: {self.money}", fg="green")
+        self.color(f"Total Miners: {len(self.miners)}", fg="cyan")
+
+        # Count each miner type owned
+        self.color("\nYour Miners:", fg="magenta")
+        counts = {}
+        for m in self.miners:
+            counts[m] = counts.get(m, 0) + 1
+        for miner, amt in counts.items():
+            self.color(f"  {miner}: {amt}", fg="bright_white")
+
+        # Add more fun stats
+        self.color("\nExtra Stats:", fg="blue")
+        self.color(f"Total Value per Tick: {self.calc_increment_value()}", fg="bright_green")
+        self.color(f"Unique Miners Owned: {len(counts)}", fg="bright_cyan")
+
+        self.color("\nPress any key to return...", fg="yellow")
+        self.get_key()
+        self.clear()
+
     # ==================== WAIT ====================
-    def wait(self, amt=None, skip=[]):
+    def wait(self, amt=None, skip=[], skipallbut=None):
         steps = 24
         chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*()[]{}<>/\\|-_=+;:,"
         width = int(max(10, get_terminal_size().columns / 3 - 10))
@@ -356,7 +375,7 @@ class MinerGame:
 
             if Console.KeyAvailable:
                 key = self.get_key()
-                if key not in skip:
+                if ((len(skip) > 0) or (key not in skip)) and (skipallbut == None or key in skipallbut):
                     return key
 
         Console.SetCursorPosition(0, Console.CursorTop - 2)
@@ -369,7 +388,7 @@ class MinerGame:
                 self.money += self.calc_increment_value()
                 sleep(self.delay / 1000)
 
-        thread = threading.Thread(target=inc_money)
+        thread = threading.Thread(target=inc_money, daemon=True)
         thread.start()
 
 
@@ -380,7 +399,7 @@ class MinerGame:
         while True:
             Console.SetCursorPosition(0,2)
             self.show_bitcoin()
-            key = self.wait(skip=[" "])
+            key = self.wait(skipallbut="1 2 3 4 5".split(" "))
             if key == "1":
                 self.shop()
             elif key == "2":
@@ -389,8 +408,9 @@ class MinerGame:
                 self.gamble_bitcoin()
             elif key == "4":
                 self.typing_minigame()
-
-            if i == 25:
+            elif key == "5":
+                self.stats_screen()
+            if i%3 == 1:
                 self.save_game()
             
             sleep(0.1)
