@@ -1,7 +1,7 @@
 from time import sleep, time
 from os import get_terminal_size, path
-from math import floor
-from random import choice, randint
+from math import floor, ceil
+from random import choice, randint, seed
 import System
 from System import Console
 import json
@@ -14,41 +14,34 @@ class MinerGame:
 		self.money = 100
 		self.delay = 1000
 		self.miners = ["Wood"]
-		self.miner_types = (
-			"Wood Stone Copper Iron Gold Sapphire Diamond Ruby Emerald "
-			"Platinum Titanium Uranium Krypton Neutron Quantum Omega "
-			"Oblivion Celestium Etherion Aetherium Chronium Eternium "
-			"Voidcrystal Singularity Arcanite Starforged Luminaris "
-			"Nebulite Astralium Infinitycore Paradoxium Eternacite "
-			"Mythrilon Voidcore Zephyrium Solarium Lunaris CelestiumX "
-			"Photonite Gravitanium Crysalite Radiantite Pyronite "
-			"Chronotite Lumisphere Astronite Nebulith ArcaniumX "
-			"Vortexium Stellarium Aetherite Cosmonite EtheriumX "
-			"Novaite Hyperion Bitcoin "
-			"Argentium Cryovite Pyroxene Luminite Stellite "
-			"Aurorium CelestiumPrime Nebularite Etheris Obscurite "
-			"Solarite ChroniumX Mythrionite Radiantium Zephyrite "
-			"Glacium Onyxite Pyraquartz AetherionX Cosmonium "
-			"Lunarium Radiite StellariumX Vortexion Obelion "
-			"Neutrinium Crysolite Auranite HyperionX Photonix "
-			"Cryptonite Obsidianite Etherlux Paradoxite Astralis "
-			"Draconium Ignisium Frostium Voltanium Aquarite "
-			"Terranite Aerolith Umbrite Ignarium Frostcrystal "
-			"Solarflare Starcore Moonstone Thunderium Stormite "
-			"Titanstone Duskite Dawnite Emberium Glaciron "
-			"Darklight Shardium Prismite Chronoglass Phantasmite "
-			"Lightcore Embercore Shadowcrystal Voidstone Dreamite "
-			"Celestiron Mythicore Eternaglass Novaquartz Quantumite "
-			"Aurorite Starlith Obscurium Cryovoid Netherium "
-			"Blazium Arcsteel Froststeel Sunflare Moonflare "
-			"Sparkite Riftium Fluxite Gravicore Pulsarite "
-			"Nebularium Dimensium Singulite Omniquartz Parallite "
-			"Timeglass Eternon Cosmolite Infinitystone Zerocore "
-			"Zenite Pyrolith Oceanite Thunderstone Skyrift "
-			"Blightstone Emberglass Cloudium Tempestite Radiacore "
-			"Nullium Omegaite Anomalyx Luxcrystal Voidflare "
-			"Solarion Eclipseon Riftglass Obliviron Aeoncore"
-		).split()
+		self.miner_types = [
+			"Wood", "Stone", "Copper", "Iron", "Gold", "Sapphire", "Diamond",
+			"Ruby", "Emerald", "Platinum", "Titanium", "Uranium", "Krypton",
+			"Neutron", "Quantum", "Omega", "Oblivion", "Celestium", "Etherion",
+			"Aetherium"
+		]
+
+		seed(42)
+
+		prefixes = [
+			"Void", "Solar", "Lunar", "Aether", "Cryo", "Pyro", "Shadow", "Radiant",
+			"Flux", "Chrono", "Nebula", "Vortex", "Hyper", "Myth", "Obliv", "Eternal",
+			"Quantum", "Celest", "Astral", "Draco", "Tempest", "Storm", "Grav", "Omni",
+			"Nova", "Frost", "Ignis", "Ether", "Spectra", "Paradox"
+		]
+
+		suffixes = [
+			"ite", "ium", "iumX", "core", "stone", "crystal", "glass", "shard", "flux",
+			"matrix", "forge", "metal", "sphere", "coreX", "quartz", "dust", "flare",
+			"forgeX", "prime", "flareX", "lite", "iumZ", "stoneX", "coreZ"
+		]
+
+		# generate 500 consistent names
+		for _ in range(5000):
+			name = choice(prefixes) + choice(suffixes)
+			self.miner_types.append(name)
+
+		seed()
 
 		self.SAVE_FILE = "save.json"
 		self.load_game()
@@ -137,12 +130,12 @@ class MinerGame:
 	# =============== ECONOMY ===============
 	def get_value(self, miner):
 		idx = self.miner_types.index(miner) + 1
-		return round((idx ** 3.3))
+		return round((idx ** 3))
 
 	def get_price(self, miner):
 		amt = self.miners.count(miner)
 		idx = self.miner_types.index(miner) + 1
-		base = (idx ** 3.5) * 50
+		base = (idx ** 3.5) * 75
 		return round(base * (1.12 ** amt))
 
 	def calc_increment_value(self):
@@ -172,12 +165,14 @@ class MinerGame:
 			price = self.get_price(miner)
 			owned = self.miners.count(miner)
 			value = self.get_value(miner)
-
-			self.color(f"Miner: {miner}                ", fg="cyan")
-			self.color(f"Price: {price:,} Bitcoin              ", fg="yellow")
-			self.color(f"Value: {value:,}                      ", fg="yellow")
-			self.color(f"Owned: {owned}                      ", fg="bright_white")
-			self.color("\n[A]/[D] Browse [S] Last   [Space] Buy   [Q] Quit", fg="bright_magenta")
+			timeToAfford = ceil((price-self.money)/self.calc_increment_value())
+			toaText = f"{timeToAfford:,}" + " seconds" if timeToAfford > 0 else "You can afford this"
+			self.color(f"Miner: {miner}                                         ", fg="cyan")
+			self.color(f"Price: {price:,} Bitcoin                               ", fg="yellow")
+			self.color(f"Value: {value:,}                                         ", fg="yellow")
+			self.color(f"Owned: {owned:,}                                           ", fg="bright_white")
+			self.color(f"Est. Time to Afford: {toaText}             ", fg="bright_white")
+			self.color("\n[A]/[D] Browse [S] Last   [Space] Buy   [Q] Quit           ", fg="bright_magenta")
 			key = None
 			if Console.KeyAvailable:
 				key = self.get_key()
@@ -191,11 +186,9 @@ class MinerGame:
 				sleep(0.7)
 				print("                                                                               ")
 			elif key == "s":
-				index = max(self. miner_types.index(i) for i in self.miners)
+				index = max(self. miner_types.index(i) for i in self.miners)+1
 			elif key == "a" and index != 0:
 				index = (index - 1)
-
-
 			elif key == " ":
 				buy(index)
 			elif key == "q":
@@ -274,7 +267,7 @@ class MinerGame:
 			self.border("BLACKJACK")
 			self.show_bitcoin()
 
-			self.color("Enter your bet (or letter to quit):", fg="yellow")
+			self.color("Enter your bet (or letter to quit): If you win, you get double your bet", fg="yellow")
 			try:
 				Console.Write("> ")
 				bet = int(Console.ReadLine())
@@ -285,7 +278,6 @@ class MinerGame:
 				self.color("Invalid bet!", fg="red")
 				sleep(1)
 				continue
-
 			player, dealer = [draw_card(), draw_card()], [draw_card(), draw_card()]
 
 			while True:
@@ -317,8 +309,8 @@ class MinerGame:
 
 				p, d = hand_value(player), hand_value(dealer)
 				if d > 21 or p > d:
-					self.color(f"🎉 You win {bet}!", fg="bright_green")
-					self.money += bet
+					self.color(f"🎉 You win {bet*2}!", fg="bright_green")
+					self.money += 2 * bet
 				elif p < d:
 					self.color(f"❌ You lose {bet}!", fg="red")
 					self.money -= bet
