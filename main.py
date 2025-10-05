@@ -137,7 +137,7 @@ class MinerGame:
 	# =============== ECONOMY ===============
 	def get_value(self, miner):
 		idx = self.miner_types.index(miner) + 1
-		return round((idx ** 2) * 5)
+		return round((idx ** 3.3))
 
 	def get_price(self, miner):
 		amt = self.miners.count(miner)
@@ -171,9 +171,11 @@ class MinerGame:
 			miner = self.miner_types[index]
 			price = self.get_price(miner)
 			owned = self.miners.count(miner)
+			value = self.get_value(miner)
 
 			self.color(f"Miner: {miner}                ", fg="cyan")
 			self.color(f"Price: {price:,} Bitcoin              ", fg="yellow")
+			self.color(f"Value: {value:,}                      ", fg="yellow")
 			self.color(f"Owned: {owned}                      ", fg="bright_white")
 			self.color("\n[A]/[D] Browse [S] Last   [Space] Buy   [Q] Quit", fg="bright_magenta")
 			key = None
@@ -244,7 +246,7 @@ class MinerGame:
 		correct = sum(1 for a, b in zip(typed_words, target_words) if a == b)
 		wpm = (len(typed_words) / time_taken) * 60
 
-		reward = round(self.money * 0.1 * (wpm / 100) * (correct / 10))
+		reward = round(self.money * 0.1 * (wpm / 30) * ((correct / 10)*(correct / 10)))
  
 		self.money += reward
 
@@ -338,8 +340,8 @@ class MinerGame:
 		self.border("PLAYER STATS")
 		self.color(f"Money: {self.money:,}", fg="green")
 		self.color(f"Total Miners: {len(self.miners)}", fg="cyan")
-
 		self.color("\nYour Miners:", fg="magenta")
+
 		counts = {}
 		for m in self.miners:
 			counts[m] = counts.get(m, 0) + 1
