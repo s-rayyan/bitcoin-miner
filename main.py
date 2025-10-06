@@ -169,7 +169,7 @@ class MinerGame:
 			toaText = f"{timeToAfford:,}" + " seconds" if timeToAfford > 0 else "You can afford this"
 			self.color(f"Miner: {miner}                                         ", fg="cyan")
 			self.color(f"Price: {price:,} Bitcoin                               ", fg="yellow")
-			self.color(f"Value: {value:,}                                         ", fg="yellow")
+			self.color(f"Bitcoin Per Second: {value:,}                                         ", fg="yellow")
 			self.color(f"Owned: {owned:,}                                           ", fg="bright_white")
 			self.color(f"Est. Time to Afford: {toaText}             ", fg="bright_white")
 			self.color("\n[A]/[D] Browse [S] Last   [Space] Buy   [Q] Quit           ", fg="bright_magenta")
@@ -201,9 +201,21 @@ class MinerGame:
 		self.border("TYPING CHALLENGE")
 
 		words = [
-			"cat","dog","sun","tree","book","coin","mine","rock","gold","fast",
-			"code","game","star","cloud","light","fire","snow","wind","leaf","rain"
+			"cat","dog","sun","run","fun","red","big","hot","cold","wet",
+			"box","bag","car","bat","cap","bed","cup","pen","toy","top",
+			"sit","run","hop","hit","cut","fix","mix","win","eat","fit",
+			"man","boy","girl","mom","dad","kid","baby","fish","bird","bug",
+			"cow","pig","ant","bee","hen","rat","fox","frog","bear","duck",
+			"tree","leaf","wood","rock","sand","mud","rain","snow","wind","sky",
+			"day","night","sun","moon","star","fire","ice","ball","game","play",
+			"book","bag","door","wall","floor","room","key","lock","bell","shoe",
+			"hat","shirt","pants","sock","coat","cake","milk","egg","rice","corn",
+			"bread","water","salt","sugar","juice","cup","plate","fork","spoon","knife",
+			"fast","slow","soft","hard","high","low","big","small","good","bad",
+			"kind","mean","fun","mad","sad","happy","clean","dirty","new","old",
+			"jump","kick","push","pull","make","take","find","get","see","go"
 		]
+
 
 		target_words = [choice(words) for _ in range(10)]
 		target_text = " ".join(target_words)
@@ -403,7 +415,8 @@ class MinerGame:
 		while True:
 			Console.SetCursorPosition(0, 3)
 			self.show_bitcoin()
-			key = self.wait(skipallbut="1 2 3 4".split(" "))
+			print(f"Bicoin Per Second: {self.calc_increment_value()}")
+			key = self.wait(0.9, skipallbut="1 2 3 4".split(" "))
 			if key == "1":
 				self.shop()
 			elif key == "2":
