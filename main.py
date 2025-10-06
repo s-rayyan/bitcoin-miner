@@ -238,7 +238,17 @@ class MinerGame:
 		typed_words = typed.strip().split()
 		correct = sum(1 for a, b in zip(typed_words, target_words) if a == b)
 		wpm = (len(typed_words) / time_taken) * 60
-
+		if wpm > 250:
+			print("")
+			print("WHY DID YOU CHEAT HUH?")
+			print("WELL GO TO HELL")
+			print("RESETTING YOUR SAVE FILE")
+			print("SAY GOODBYE TO YOUR MINERS")
+			self.money = -99
+			self.miners = ["Wood"]
+			Console.ReadLine()
+			self.clear()
+			return
 		reward = round(self.money * 0.1 * (wpm / 30) * ((correct / 10)*(correct / 10)))
  
 		self.money += reward
